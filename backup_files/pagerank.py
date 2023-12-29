@@ -92,31 +92,32 @@ def sample_pagerank(corpus, damping_factor, n):
     """
     visits = {page_name: 0 for page_name in corpus}
 
-    # First page
-    current_page = random.choice(list(visits))
-    visits[current_page] += 1
+    # First page choice is picked at random:
+    curr_page = random.choice(list(visits))
+    visits[curr_page] += 1
 
-    # Based on transition_model
+    # For remaining n-1 samples, pick the page based on the transistion model:
     for i in range(0, n-1):
 
-        trans_model = transition_model(corpus, current_page, damping_factor)
+        trans_model = transition_model(corpus, curr_page, damping_factor)
 
-        random_value = random.random()
-        total_probability = 0
+        # Pick next page based on the transition model probabilities:
+        rand_val = random.random()
+        total_prob = 0
 
         for page_name, probability in trans_model.items():
-            total_probability += probability
-            if random_value <= total_probability:
-                current_page = page_name
+            total_prob += probability
+            if rand_val <= total_prob:
+                curr_page = page_name
                 break
 
-        visits[current_page] += 1
+        visits[curr_page] += 1
 
-    # Normalise
+    # Normalise visits using sample number:
     page_ranks = {page_name: (visit_num/n)
                   for page_name, visit_num in visits.items()}
 
-    print('Sum:', round(sum(page_ranks.values()), 3))
+    print('Sum of sample page ranks: ', round(sum(page_ranks.values()), 4))
 
     return page_ranks
 
@@ -130,43 +131,43 @@ def iterate_pagerank(corpus, damping_factor):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    number_of_pages = len(corpus)
-    initial_rank = 1 / number_of_pages
-    random_choice_prob = (1 - damping_factor) / number_of_pages
+    num_pages = len(corpus)
+    initial_rank = 1 / num_pages
+    random_choice_prob = (1 - damping_factor) / num_pages
+    iterations = 0
 
+    # Initialize page ranks with equal probabilities
     page_ranks = {page: initial_rank for page in corpus}
     new_ranks = {page: None for page in corpus}
     max_rank_change = initial_rank
 
     while max_rank_change > 0.001:
+        iterations += 1
         max_rank_change = 0
 
         for page_name in corpus:
-            surf_choice_prob = 0
-
-            for other_page in corpus:
-                if page_name in corpus[other_page]:
-                    if corpus[other_page]:
-                        surf_choice_prob += page_ranks[other_page] / \
-                            len(corpus[other_page])
-                    else:
-                        surf_choice_prob += initial_rank
+            surf_choice_prob = sum(page_ranks[other_page] / len(corpus[other_page])
+                                   if corpus[other_page] else initial_rank
+                                   for other_page in corpus if page_name in corpus[other_page])
 
             # Calculate new page rank
             new_rank = random_choice_prob + damping_factor * surf_choice_prob
             new_ranks[page_name] = new_rank
 
+        # Normalization step
         norm_factor = sum(new_ranks.values())
         new_ranks = {page: rank / norm_factor for page,
                      rank in new_ranks.items()}
 
+        # Find max change in page rank
         max_rank_change = max(
             abs(page_ranks[page] - new_ranks[page]) for page in corpus)
 
-        # Update
+        # Update page ranks
         page_ranks = new_ranks.copy()
 
-    print('Sum: ', round(sum(page_ranks.values()), 3))
+    print('Iteration took', iterations, 'iterations to converge')
+    print('Sum of iteration page ranks: ', round(sum(page_ranks.values()), 4))
 
     return page_ranks
 
